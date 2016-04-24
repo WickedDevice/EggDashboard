@@ -18,7 +18,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.mostRecentParticulateTime = null;
   $scope.mostRecentTime = null;
   $scope.mostRecentTimeTime = true; // necessary for uniform treatment
-  $scope.leastRecentTime = null;
+
+  $scope.latestDateAvailable = null;
+  $scope.earliestDateAvailable = null;
 
   $scope.plot_duration_seconds = 60 * 60; // 1 hour
   $scope.zoom_earliest_timestamp = null;
@@ -104,17 +106,19 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           var timestamp = datum.timestamp.m;
           if (!$scope.mostRecentTime) {
             $scope.mostRecentTime = timestamp;
+            $scope.latestDateAvailable = timestamp;
           }
-          else if(timestamp.isAfter($scope.mostRecentTime)){
+          else if(timestamp.isAfter($scope.latestDateAvailable)){
             $scope.mostRecentTime = timestamp;
+            $scope.latestDateAvailable = timestamp
           }
 
-          if(!$scope.leastRecentTime){
-            $scope.leastRecentTime = timestamp;
+          if(!$scope.earliestDateAvailable){
+            $scope.earliestDateAvailable = timestamp;
           }
-          else if(timestamp.isBefore($scope.leastRecentTime)){
-            $scope.leastRecentTime = timestamp;
-          }
+          //else if(timestamp.isBefore($scope.earliestDateAvailable)){
+          //  $scope.earliestDateAvailable = timestamp;
+          //}
 
           var value = datum["compensated-value"] || datum["converted-value"];
           // this convoluted bit of code is due to the fact that the number zero is falsy
@@ -165,7 +169,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       // we should go through the data we're keeping around
       // and drop any data that is older than "interval"
       // from the most recent timestamp
-      var earliestAllowedTimestamp = $scope.mostRecentTime.subtract($scope.plot_duration_seconds, "seconds");
+      var earliestAllowedTimestamp = moment($scope.latestDateAvailable).subtract($scope.plot_duration_seconds, "seconds");
       for(var ii = 0; ii < $scope.knownTopics.length; ii++){
         // we'll assume that the records are in order chronologically
         // and remove them from the front one at a time
@@ -208,6 +212,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           }
         }
         //console.log("Topic: " + topic + ", Adds: " + numAdds + ", Removes: " + numRemoves);
+
+        // finally we should re-establish the earliest available date after removals
+        $scope.earliestDateAvailable = moment(earliestAllowedTimestamp);
       }
 
       $scope.mostRecentTime = $sce.trustAsHtml(timestamp.format("MMMM Do YYYY, h:mm:ss a"));
@@ -258,7 +265,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       var units = null;
 
       trace.y = $scope.data[$scope.knownTopics[ii]].map(function(datum){
-        if(isNumeric(datum["compensated-value"])){
+        if($scope.zoom_earliest_timestamp && $scope.zoom_latest_timestamp
+            && (datum.timestamp.m.isAfter($scope.zoom_latest_timestamp)
+                  || datum.timestamp.m.isBefore($scope.zoom_earliest_timestamp))){
+          return null;
+        }
+        else if(isNumeric(datum["compensated-value"])){
           if(!units){
             units = sensorType + ' ' + symbolic(datum['converted-units']);
           }
@@ -280,7 +292,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       });
 
       trace.x = $scope.data[$scope.knownTopics[ii]].map(function(datum){
-        if(isNumeric(datum["compensated-value"])){
+        if($scope.zoom_earliest_timestamp && $scope.zoom_latest_timestamp
+          && (datum.timestamp.m.isAfter($scope.zoom_latest_timestamp)
+          || datum.timestamp.m.isBefore($scope.zoom_earliest_timestamp))){
+          return null;
+        }
+        else if(isNumeric(datum["compensated-value"])){
           return datum.timestamp.str;
         }
         else if(isNumeric(datum["converted-value"])){
@@ -299,16 +316,23 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       Plotly.newPlot(sensorType + '_scatterplot', [trace], layout);
 
       $('#'+sensorType+"_scatterplot").bind('plotly_relayout',function(event, eventdata){
-        if(eventdata["xaxis.autorange"]){
-          $scope.zoom_earliest_timestamp = $scope.leastRecentTime;
-          $scope.zoom_latest_timestamp = $scope.mostRecentTime;
+        $timeout(function() {
+          try {
+            if (eventdata["xaxis.autorange"]) {
+              $scope.zoom_earliest_timestamp = $scope.earliestDateAvailable;
+              $scope.zoom_latest_timestamp = $scope.latestDateAvailable;
 
-        }
-        else if(eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]){
-          $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
-          $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
-        }
-        $scope.$apply();
+            }
+            else if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
+              $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
+              $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
+            }
+          }
+          catch(e){
+            console.log(e);
+          }
+          $scope.renderPlots();
+        });
       });
     }
   };
