@@ -24,9 +24,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     {name: "5 minutes", value: 300},
     {name:"15 minutes", value: 900},
     {name:"1 hour", value: 3600},
-    {name:"8 hours", value: 28800},
-    {name:"16 hours", value: 57600},
-    {name:"24 hours", value: 86400}
+    {name:"8 hours", value: 28800}
+    //{name:"16 hours", value: 57600},
+    //{name:"24 hours", value: 86400}
   ];
 
   $scope.selectedDuration = 600;
@@ -117,7 +117,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       if(manuallyRescheduled) {
         // retry in 10 seconds
         console.log("Rescheduling fetch");
-        $timeout($scope.fetchDataAndRenderPlots, 10, true, manuallyRescheduled, seconds, render);
+        $timeout($scope.fetchDataAndRenderPlots, 10000, true, manuallyRescheduled, seconds, render);
       }
       return;
     }
@@ -127,6 +127,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     $http({method: 'GET', url:'egg/' + $routeParams.egg_id + '?seconds=' + seconds, timeout: 100000000}).then(function(data){
       data = data.data;
       var keys = Object.keys(data);
+
       for(var ii = 0; ii < keys.length; ii++){
         for(var jj = 0; jj < data[keys[ii]].length; jj++) {
           var datum = data[keys[ii]][jj];
@@ -199,7 +200,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       // we should go through the data we're keeping around
       // and drop any data that is older than "interval"
       // from the most recent timestamp
-      var earliestAllowedTimestamp = moment($scope.latestDateAvailable).subtract($scope.plot_duration_seconds, "seconds");
+      var earliestAllowedTimestamp = moment().subtract($scope.plot_duration_seconds, "seconds");
       for(var ii = 0; ii < $scope.knownTopics.length; ii++){
         // we'll assume that the records are in order chronologically
         // and remove them from the front one at a time
@@ -257,7 +258,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         $scope.earliestDateAvailable = moment(earliestAllowedTimestamp);
       }
 
-      $scope.mostRecentTime = $sce.trustAsHtml(timestamp.format("MMMM Do YYYY, h:mm:ss a"));
+      if(timestamp) {
+        $scope.mostRecentTime = $sce.trustAsHtml(timestamp.format("MMMM Do YYYY, h:mm:ss a"));
+      }
 
       if(render && !$scope.disableAutoRender) {
         $scope.renderPlots();
@@ -284,6 +287,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       console.log(response.status);
       console.log(response.statusText);
       console.log(response.headers());
+      $scope.downloadInProgress = false;
     }); // end error
   };
 
