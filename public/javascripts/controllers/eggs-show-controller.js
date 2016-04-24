@@ -18,6 +18,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.mostRecentParticulateTime = null;
   $scope.mostRecentTime = null;
   $scope.mostRecentTimeTime = true; // necessary for uniform treatment
+  $scope.leastRecentTime = null;
 
   $scope.plot_duration_seconds = 60 * 60; // 1 hour
   $scope.zoom_earliest_timestamp = null;
@@ -36,7 +37,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
   $scope.knownTopics = Object.keys($scope.data);
 
-  $scope.sensorTypes = ["Temperature", "Humidity", "NO2", "CO", "SO2", "O3", "CO2", "Particulate", "Time"];
+  $scope.sensorTypes = ["Temperature", "Humidity", "NO2", "CO", "SO2", "O3", "Particulate", "CO2", "Time"];
   $scope.hasSensorType = function(sensorType){
     return ($scope["mostRecent" + sensorType] && $scope["mostRecent" + sensorType + "Time"]);
   };
@@ -86,10 +87,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }
   }
 
-  $scope.fetchDataAndRenderPlots = function (seconds){
+  $scope.fetchDataAndRenderPlots = function (seconds, render){
     if(!seconds){
       seconds = 10;
     }
+
+    var numDataPoints = 0;
 
     $http.get('egg/' + $routeParams.egg_id + '?seconds=' + seconds).success(function(data){
       var keys = Object.keys(data);
@@ -97,13 +100,20 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         for(var jj = 0; jj < data[keys[ii]].length; jj++) {
           var datum = data[keys[ii]][jj];
           datum.timestamp = { m: moment(datum.timestamp)}; // convert all the timestamp fields to moments
-          datum.timestamp.str = datum.timestamp.m.format('DD/MM/YYYY HH:mm:ss'); // for plotly
+          datum.timestamp.str = datum.timestamp.m.format('YYYY-MM-DD HH:mm:ss'); // for plotly
           var timestamp = datum.timestamp.m;
           if (!$scope.mostRecentTime) {
             $scope.mostRecentTime = timestamp;
           }
           else if(timestamp.isAfter($scope.mostRecentTime)){
             $scope.mostRecentTime = timestamp;
+          }
+
+          if(!$scope.leastRecentTime){
+            $scope.leastRecentTime = timestamp;
+          }
+          else if(timestamp.isBefore($scope.leastRecentTime)){
+            $scope.leastRecentTime = timestamp;
           }
 
           var value = datum["compensated-value"] || datum["converted-value"];
@@ -174,6 +184,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
         // then we should push the new data as long as it's not already there
         if(data[topic]) {
+          numDataPoints++;
           var last_jj_reached = 0;
           for (var kk = 0; kk < data[topic].length; kk++) {
             var new_datum = data[topic][kk];
@@ -198,19 +209,42 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         //console.log("Topic: " + topic + ", Adds: " + numAdds + ", Removes: " + numRemoves);
       }
 
-
       $scope.mostRecentTime = $sce.trustAsHtml(timestamp.format("MMMM Do YYYY, h:mm:ss a"));
 
-      $scope.renderPlots();
+      if(render) {
+        $scope.renderPlots();
+      }
+      else{
+        // go ahead wipe those "data series" results
+        $scope.data = {
+          "/orgs/wd/aqe/temperature":[],
+          "/orgs/wd/aqe/humidity":[],
+          "/orgs/wd/aqe/no2":[],
+          "/orgs/wd/aqe/co":[],
+          "/orgs/wd/aqe/so2":[],
+          "/orgs/wd/aqe/o3":[],
+          "/orgs/wd/aqe/particulate":[],
+          "/orgs/wd/aqe/co2":[]
+        };
+      }
     });
   };
 
   // render plots reflects on $scope.data and targets
   // constructs the properly formatted plotly traces
   // and targets them at the appropriate divs
+  function isNumeric(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+  }
+
   $scope.renderPlots = function(){
     for(var ii = 0; ii < $scope.sensorTypes.length; ii++){
       var sensorType = $scope.sensorTypes[ii];
+
+      if(sensorType == "Time" || !$scope.hasSensorType(sensorType)){
+        continue;
+      }
+
       var trace = {
         x: [],
         y: [],
@@ -219,25 +253,75 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         type: 'scatter',
         name: sensorType
       };
+
+      var units = null;
+
+      trace.y = $scope.data[$scope.knownTopics[ii]].map(function(datum){
+        if(isNumeric(datum["compensated-value"])){
+          if(!units){
+            units = sensorType + ' ' + symbolic(datum['converted-units']);
+          }
+
+          return datum["compensated-value"];
+        }
+        else if(isNumeric(datum["converted-value"])){
+          if(!units){
+            units = sensorType + ' ' + symbolic(datum['converted-units']);
+          }
+
+          return datum["converted-value"];
+        }
+        else{
+          return null;
+        }
+      }).filter(function(value){
+        return value !== null;
+      });
+
+      trace.x = $scope.data[$scope.knownTopics[ii]].map(function(datum){
+        if(isNumeric(datum["compensated-value"])){
+          return datum.timestamp.str;
+        }
+        else if(isNumeric(datum["converted-value"])){
+          return datum.timestamp.str;
+        }
+        else{
+          return null;
+        }
+      }).filter(function(value){
+        return value !== null;
+      });
+
+      var layout = {height: 400};
+      layout.yaxis = {title: units};
+
+      Plotly.newPlot(sensorType + '_scatterplot', [trace], layout);
+
+      $('#'+sensorType+"_scatterplot").bind('plotly_relayout',function(event, eventdata){
+        if(eventdata["xaxis.autorange"]){
+          $scope.zoom_earliest_timestamp = $scope.leastRecentTime;
+          $scope.zoom_latest_timestamp = $scope.mostRecentTime;
+
+        }
+        else if(eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]){
+          $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
+          $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
+        }
+        $scope.$apply();
+      });
     }
   };
 
-  $timeout($scope.fetchDataAndRenderPlots, 0, true, 10);    // fetch an 10 seconds immediately
+  function kickoff1(dur){
+    $scope.fetchDataAndRenderPlots(dur);
+    $timeout(kickoff2, 0, true, 60*60, true); // fetch an hour immediately
+  }
 
-  // go ahead wipe those "data series" results
-  $scope.data = {
-    "/orgs/wd/aqe/temperature":[],
-    "/orgs/wd/aqe/humidity":[],
-    "/orgs/wd/aqe/no2":[],
-    "/orgs/wd/aqe/co":[],
-    "/orgs/wd/aqe/so2":[],
-    "/orgs/wd/aqe/o3":[],
-    "/orgs/wd/aqe/particulate":[],
-    "/orgs/wd/aqe/co2":[]
-  };
+  function kickoff2(dur, render){
+    $scope.fetchDataAndRenderPlots(dur, render);
+    $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, 10, true); //thereafter fetch 10 seconds
+  }
 
-  $timeout($scope.fetchDataAndRenderPlots, 0, true, 60*60); // fetch an hour immediately
-
-  $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, 10); //thereafter fetch 10 seconds
+  $timeout(kickoff1, 0, true, 10);    // fetch an 10 seconds immediately
 
 });
