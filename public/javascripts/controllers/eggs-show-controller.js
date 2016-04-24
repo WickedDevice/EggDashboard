@@ -18,6 +18,27 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.mostRecentParticulateTime = null;
   $scope.mostRecentTime = null;
   $scope.mostRecentTimeTime = true; // necessary for uniform treatment
+  $scope.downloadInProgress = false;
+
+  $scope.durations = [
+    {name: "5 minutes", value: 300},
+    {name:"15 minutes", value: 900},
+    {name:"1 hour", value: 3600},
+    {name:"8 hours", value: 28800},
+    {name:"16 hours", value: 57600},
+    {name:"24 hours", value: 86400}
+  ];
+
+  $scope.selectedDuration = 600;
+  $scope.durationChange = function(){
+    console.log("selection changed to " + $scope.selectedDuration.name);
+    if(angular.isDefined($scope.stopFetching)){
+      $interval.cancel($scope.stopFetching);
+    }
+    $timeout(kickoff1, 0, true, 5, $scope.selectedDuration.value);
+  };
+
+  $scope.registeredSensorTypePlotCallbacks = [];
 
   $scope.latestDateAvailable = null;
   $scope.earliestDateAvailable = null;
@@ -89,14 +110,22 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }
   }
 
-  $scope.fetchDataAndRenderPlots = function (seconds, render){
-    if(!seconds){
-      seconds = 10;
-    }
+  $scope.fetchDataAndRenderPlots = function (manuallyRescheduled, seconds, render){
 
     var numDataPoints = 0;
+    if($scope.downloadInProgress){
+      if(manuallyRescheduled) {
+        // retry in 10 seconds
+        console.log("Rescheduling fetch");
+        $timeout($scope.fetchDataAndRenderPlots, 10, true, manuallyRescheduled, seconds, render);
+      }
+      return;
+    }
+    console.log("Executing fetch of " + seconds + " seconds");
+    $scope.downloadInProgress = true;
 
-    $http.get('egg/' + $routeParams.egg_id + '?seconds=' + seconds).success(function(data){
+    $http({method: 'GET', url:'egg/' + $routeParams.egg_id + '?seconds=' + seconds, timeout: 100000000}).then(function(data){
+      data = data.data;
       var keys = Object.keys(data);
       for(var ii = 0; ii < keys.length; ii++){
         for(var jj = 0; jj < data[keys[ii]].length; jj++) {
@@ -120,20 +149,21 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           //  $scope.earliestDateAvailable = timestamp;
           //}
 
-          var value = datum["compensated-value"] || datum["converted-value"];
-          // this convoluted bit of code is due to the fact that the number zero is falsy
-          // but it is a perfectly reasonable value for a sensor to report
-          // so if value is falsy, and something was neither null nor undefined, it must
-          // have been zero, and we should restore it to that value
-          if(!value &&
-              ((datum["compensated-value"] !== null && datum["compensated-value"] !== undefined)
-                || ( datum["converted-value"] !== null && datum["converted-value"] !== undefined))){
-            value = 0;
+          var value = null;
+          if(isNumeric(datum["compensated-value"])){
+            value = datum["compensated-value"];
+          }
+          else if(isNumeric(datum["converted-value"])){
+            value = datum["converted-value"];
           }
 
-          if(value !== null && value !== undefined){
+
+          if(value !== null){
             value = value.toFixed(2);
             value += ' ' + symbolic(datum["converted-units"]);
+          }
+          else{
+            continue;
           }
 
           switch(datum.topic){
@@ -245,7 +275,16 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           "/orgs/wd/aqe/co2":[]
         };
       }
-    });
+      console.log("Completing fetch of " + seconds + " seconds");
+      $scope.downloadInProgress = false;
+    }, // end success
+    function(response){
+      console.log("Download Failed");
+      console.log(response.data);
+      console.log(response.status);
+      console.log(response.statusText);
+      console.log(response.headers());
+    }); // end error
   };
 
   // render plots reflects on $scope.data and targets
@@ -256,11 +295,11 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   }
 
   $scope.renderPlots = function(){
-    for(var ii = 0; ii < $scope.sensorTypes.length; ii++){
-      var sensorType = $scope.sensorTypes[ii];
+    $scope.sensorTypes.forEach(function(currentValue, ii){
+      var sensorType = currentValue;
 
       if(sensorType == "Time" || !$scope.hasSensorType(sensorType)){
-        continue;
+        return;
       }
 
       var trace = {
@@ -325,50 +364,66 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
       Plotly.newPlot(sensorType + '_scatterplot', [trace], layout);
 
-      $('#'+sensorType+"_scatterplot").bind('plotly_relayout',function(event, eventdata){
-        $timeout(function() {
-          try {
-            if (eventdata["xaxis.autorange"]) {
-              $scope.zoom_earliest_timestamp = $scope.earliestDateAvailable;
-              $scope.zoom_latest_timestamp = $scope.latestDateAvailable;
+      var callbacksAlreadyRegistered = true;
+      if($scope.registeredSensorTypePlotCallbacks.indexOf(sensorType) == -1){
+        callbacksAlreadyRegistered = false;
+      }
 
+      if(!callbacksAlreadyRegistered) {
+        $('#' + sensorType + "_scatterplot").bind('plotly_relayout', function (event, eventdata) {
+          $timeout(function () {
+            try {
+              if (eventdata["xaxis.autorange"]) {
+                $scope.zoom_earliest_timestamp = $scope.earliestDateAvailable;
+                $scope.zoom_latest_timestamp = $scope.latestDateAvailable;
+
+              }
+              else if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
+                $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
+                $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
+              }
             }
-            else if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
-              $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
-              $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
+            catch (e) {
+              console.log(e);
             }
-          }
-          catch(e){
-            console.log(e);
-          }
-          $scope.renderPlots();
-        });
-      });
-
-
-      $('#'+sensorType+"_scatterplot").on('plotly_hover', function(data){
-        $timeout(function(){
-          $scope.disableAutoRender = true;
-        });
-      })
-      .on('plotly_unhover', function(data){
-          $timeout(function(){
+            $scope.renderPlots();
             $scope.disableAutoRender = false;
+            console.log(sensorType + " Relayout Auto Render Enabled");
+
           });
-      });
-    }
+        });
+
+
+        $('#' + sensorType + "_scatterplot")
+          .on('plotly_unhover', function (data) {
+            $timeout(function () {
+              $scope.disableAutoRender = false;
+              console.log(sensorType + " Unhover Auto Render Enabled");
+            });
+          });
+
+        $('#' + sensorType + "_scatterplot").on('plotly_click', function (data) {
+          $timeout(function () {
+            $scope.disableAutoRender = true;
+            console.log(sensorType + " Click Auto Render Disabled");
+          });
+        });
+
+        $scope.registeredSensorTypePlotCallbacks.push(sensorType);
+      }
+    });
   };
 
-  function kickoff1(dur){
-    $scope.fetchDataAndRenderPlots(dur);
-    $timeout(kickoff2, 0, true, 60*60, true); // fetch an hour immediately
+  function kickoff1(dur, bulkDuration){
+    $scope.fetchDataAndRenderPlots(true, dur); // manually rescheduled
+    $timeout(kickoff2, 0, true, bulkDuration, true); // fetch an bulk immediately
   }
 
   function kickoff2(dur, render){
-    $scope.fetchDataAndRenderPlots(dur, render);
-    $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, 10, true); //thereafter fetch 10 seconds
+    $scope.fetchDataAndRenderPlots(true, dur, render); // manually rescheduled
+    $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, false, 10, true); //thereafter fetch 10 seconds, not manually rescheduled
   }
 
-  $timeout(kickoff1, 0, true, 10);    // fetch an 10 seconds immediately
+  $timeout(kickoff1, 0, true, 10, 600);    // fetch an 10 seconds immediately, then the 1 hour for bulk
 
 });

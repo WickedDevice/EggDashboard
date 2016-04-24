@@ -20,6 +20,10 @@ router.get("/egg/:serialnumber", function(req, res, next){
   Promise.try(function(){
     return api.messages.byDevice(serialNumber, {"start-date": moment().subtract(duration_seconds, "seconds").format()});
   }).then(function(results){
+    console.log("Response Object: ");
+    console.log(results);
+    console.log("Length: " + JSON.stringify(results).length);
+
     // now that we have results, split them up into datastreams
     var partitioned_results = {};
     for(var ii = 0; ii < results.length; ii++){
@@ -29,7 +33,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
       }
       partitioned_results[result.topic].push(result);
     }
-    console.log(partitioned_results);
+    //console.log(partitioned_results);
     res.json(partitioned_results);
   });
 });
