@@ -128,6 +128,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           }
 
           if(value !== null && value !== undefined){
+            value = value.toFixed(2);
             value += ' ' + symbolic(datum["converted-units"]);
           }
 
