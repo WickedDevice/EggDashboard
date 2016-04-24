@@ -103,7 +103,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           var datum = data[keys[ii]][jj];
           datum.timestamp = { m: moment(datum.timestamp)}; // convert all the timestamp fields to moments
           datum.timestamp.str = datum.timestamp.m.format('YYYY-MM-DD HH:mm:ss'); // for plotly
-          var timestamp = datum.timestamp.m;
+          var timestamp = moment(datum.timestamp.m);
           if (!$scope.mostRecentTime) {
             $scope.mostRecentTime = timestamp;
             $scope.latestDateAvailable = timestamp;
@@ -208,6 +208,16 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
               // add it to the scope data
               $scope.data[topic].push(new_datum);
               numAdds++;
+
+              if(!$scope.zoom_latest_timestamp){
+                $scope.zoom_latest_timestamp = moment(new_datum.timestamp.m);
+                $scope.mostRecentTime = moment(new_datum.timestamp.m);
+              }
+              else if($scope.zoom_latest_timestamp.isBefore(new_datum.timestamp.m)){
+                $scope.zoom_latest_timestamp = moment(new_datum.timestamp.m);
+                $scope.mostRecentTime = moment(new_datum.timestamp.m);
+              }
+
             }
           }
         }
