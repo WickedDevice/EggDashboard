@@ -219,10 +219,10 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
       $scope.mostRecentTime = $sce.trustAsHtml(timestamp.format("MMMM Do YYYY, h:mm:ss a"));
 
-      if(render) {
+      if(render && !$scope.disableAutoRender) {
         $scope.renderPlots();
       }
-      else{
+      else if(!render){
         // go ahead wipe those "data series" results
         $scope.data = {
           "/orgs/wd/aqe/temperature":[],
@@ -333,6 +333,18 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           }
           $scope.renderPlots();
         });
+      });
+
+
+      $('#'+sensorType+"_scatterplot").on('plotly_hover', function(data){
+        $timeout(function(){
+          $scope.disableAutoRender = true;
+        });
+      })
+      .on('plotly_unhover', function(data){
+          $timeout(function(){
+            $scope.disableAutoRender = false;
+          });
       });
     }
   };
