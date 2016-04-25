@@ -200,10 +200,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       // and drop any data that is older than "interval"
       // from the most recent timestamp
       var earliestAllowedTimestamp = moment().subtract($scope.plot_duration_seconds, "seconds");
-      for(var ii = 0; ii < $scope.knownTopics.length; ii++){
+      $scope.knownTopics.forEach(function(topic, ii){
         // we'll assume that the records are in order chronologically
         // and remove them from the front one at a time
-        var topic = $scope.knownTopics[ii];
         var numAdds = 0;
         var numRemoves = 0;
 
@@ -221,8 +220,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         if(data[topic]) {
           numDataPoints++;
           var last_jj_reached = 0;
-          for (var kk = 0; kk < data[topic].length; kk++) {
-            var new_datum = data[topic][kk];
+          data[topic].forEach(function(new_datum, kk){
             var new_datum_exists = false;
             // check if it exists
             for (var jj = last_jj_reached; jj < $scope.data[topic].length; jj++) {
@@ -249,15 +247,15 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
               }
 
             }
-          }
+          });
         }
         //console.log("Topic: " + topic + ", Adds: " + numAdds + ", Removes: " + numRemoves);
 
         // finally we should re-establish the earliest available date after removals
         $scope.earliestDateAvailable = moment(earliestAllowedTimestamp);
-      }
+      });
 
-      if($scope.mostRecentTime) {
+      if($scope.mostRecentTime && $scope.mostRecentTime.format) {
         $scope.mostRecentTime = $sce.trustAsHtml($scope.mostRecentTime.format("MMMM Do YYYY, h:mm:ss a"));
       }
 
