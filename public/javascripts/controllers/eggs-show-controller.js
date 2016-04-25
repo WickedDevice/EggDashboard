@@ -127,13 +127,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     $http({method: 'GET', url:'egg/' + $routeParams.egg_id + '?seconds=' + seconds, timeout: 100000000}).then(function(data){
       data = data.data;
       var keys = Object.keys(data);
-
+      var timestamp;
       for(var ii = 0; ii < keys.length; ii++){
-        for(var jj = 0; jj < data[keys[ii]].length; jj++) {
-          var datum = data[keys[ii]][jj];
+        data[keys[ii]].forEach(function(datum, jj){
           datum.timestamp = { m: moment(datum.timestamp)}; // convert all the timestamp fields to moments
           datum.timestamp.str = datum.timestamp.m.format('YYYY-MM-DD HH:mm:ss'); // for plotly
-          var timestamp = moment(datum.timestamp.m);
+          timestamp = moment(datum.timestamp.m);
           if (!$scope.mostRecentTime) {
             $scope.mostRecentTime = timestamp;
             $scope.latestDateAvailable = timestamp;
@@ -164,7 +163,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
             value += ' ' + symbolic(datum["converted-units"]);
           }
           else{
-            continue;
+            return;
           }
 
           switch(datum.topic){
@@ -193,7 +192,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
               updateTimestamp("CO2", timestamp, value);
               break;
           }
-        }
+        });
       }
 
       // so now we know what the most recent timestamp is...
@@ -258,8 +257,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         $scope.earliestDateAvailable = moment(earliestAllowedTimestamp);
       }
 
-      if(timestamp) {
-        $scope.mostRecentTime = $sce.trustAsHtml(timestamp.format("MMMM Do YYYY, h:mm:ss a"));
+      if($scope.mostRecentTime) {
+        $scope.mostRecentTime = $sce.trustAsHtml($scope.mostRecentTime.format("MMMM Do YYYY, h:mm:ss a"));
       }
 
       if(render && !$scope.disableAutoRender) {
