@@ -29,7 +29,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     //{name:"24 hours", value: 86400}
   ];
 
-  $scope.selectedDuration = 600;
+  $scope.selectedDuration = {name: "5 minutes", value: 300};
+
   $scope.durationChange = function(){
     console.log("selection changed to " + $scope.selectedDuration.name);
     if(angular.isDefined($scope.stopFetching)){
@@ -40,10 +41,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
   $scope.registeredSensorTypePlotCallbacks = [];
 
-  $scope.latestDateAvailable = null;
-  $scope.earliestDateAvailable = null;
+  $scope.extents_latest_date = null;
+  $scope.extents_earliest_date = null;
 
-  $scope.plot_duration_seconds = 60 * 60; // 1 hour
   $scope.zoom_earliest_timestamp = null;
   $scope.zoom_latest_timestamp = null;
 
@@ -61,6 +61,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.knownTopics = Object.keys($scope.data);
 
   $scope.sensorTypes = ["Temperature", "Humidity", "NO2", "CO", "SO2", "O3", "Particulate", "CO2", "Time"];
+  $scope.sensorTypesWithoutTime = $scope.sensorTypes.slice(0, -1);
   $scope.hasSensorType = function(sensorType){
     return ($scope["mostRecent" + sensorType] && $scope["mostRecent" + sensorType + "Time"]);
   };
@@ -112,7 +113,6 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
   $scope.fetchDataAndRenderPlots = function (manuallyRescheduled, seconds, render){
 
-    var numDataPoints = 0;
     if($scope.downloadInProgress){
       if(manuallyRescheduled) {
         // retry in 10 seconds
@@ -126,28 +126,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
     $http({method: 'GET', url:'egg/' + $routeParams.egg_id + '?seconds=' + seconds, timeout: 100000000}).then(function(data){
       data = data.data;
-      var keys = Object.keys(data);
-      var timestamp;
-      for(var ii = 0; ii < keys.length; ii++){
-        data[keys[ii]].forEach(function(datum, jj){
+
+      Object.keys(data).forEach(function(topic, ii){
+        data[topic].forEach(function(datum, jj){
           datum.timestamp = { m: moment(datum.timestamp)}; // convert all the timestamp fields to moments
           datum.timestamp.str = datum.timestamp.m.format('YYYY-MM-DD HH:mm:ss'); // for plotly
-          timestamp = moment(datum.timestamp.m);
-          if (!$scope.mostRecentTime) {
-            $scope.mostRecentTime = timestamp;
-            $scope.latestDateAvailable = timestamp;
-          }
-          else if(timestamp.isAfter($scope.latestDateAvailable)){
-            $scope.mostRecentTime = timestamp;
-            $scope.latestDateAvailable = timestamp
-          }
-
-          if(!$scope.earliestDateAvailable){
-            $scope.earliestDateAvailable = timestamp;
-          }
-          //else if(timestamp.isBefore($scope.earliestDateAvailable)){
-          //  $scope.earliestDateAvailable = timestamp;
-          //}
+          var timestamp = moment(datum.timestamp.m);
 
           var value = null;
           if(isNumeric(datum["compensated-value"])){
@@ -193,67 +177,65 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
               break;
           }
         });
-      }
-
-      // so now we know what the most recent timestamp is...
-      // we should go through the data we're keeping around
-      // and drop any data that is older than "interval"
-      // from the most recent timestamp
-      var earliestAllowedTimestamp = moment().subtract($scope.plot_duration_seconds, "seconds");
-      $scope.knownTopics.forEach(function(topic, ii){
-        // we'll assume that the records are in order chronologically
-        // and remove them from the front one at a time
-        var numAdds = 0;
-        var numRemoves = 0;
-
-        for(var jj = 0; jj < $scope.data[topic].length; jj++){
-          var datum = $scope.data[topic].shift();
-          numRemoves++;
-          if(datum.timestamp.m.isAfter(earliestAllowedTimestamp)){
-            $scope.data[topic].unshift(datum);
-            numRemoves--;
-            break;
-          }
-        }
-
-        // then we should push the new data as long as it's not already there
-        if(data[topic]) {
-          numDataPoints++;
-          var last_jj_reached = 0;
-          data[topic].forEach(function(new_datum, kk){
-            var new_datum_exists = false;
-            // check if it exists
-            for (var jj = last_jj_reached; jj < $scope.data[topic].length; jj++) {
-              var existing_datum = $scope.data[topic][jj];
-              last_jj_reached = jj + 1;
-              if(existing_datum.timestamp.m.isSame(new_datum.timestamp.m)){
-                new_datum_exists = true;
-                break;
-              }
-            }
-
-            if(!new_datum_exists){
-              // add it to the scope data
-              $scope.data[topic].push(new_datum);
-              numAdds++;
-
-              if(!$scope.zoom_latest_timestamp){
-                $scope.zoom_latest_timestamp = moment(new_datum.timestamp.m);
-                $scope.mostRecentTime = moment(new_datum.timestamp.m);
-              }
-              else if($scope.zoom_latest_timestamp.isBefore(new_datum.timestamp.m)){
-                $scope.zoom_latest_timestamp = moment(new_datum.timestamp.m);
-                $scope.mostRecentTime = moment(new_datum.timestamp.m);
-              }
-
-            }
-          });
-        }
-        //console.log("Topic: " + topic + ", Adds: " + numAdds + ", Removes: " + numRemoves);
-
-        // finally we should re-establish the earliest available date after removals
-        $scope.earliestDateAvailable = moment(earliestAllowedTimestamp);
       });
+
+      var earliestAllowedTimestamp = moment().subtract($scope.selectedDuration.value, "seconds");
+      $scope.knownTopics.forEach(function(topic, ii){
+        // add the new data
+        if(data[topic]) {
+          $scope.data[topic] = $scope.data[topic].concat(data[topic]);
+        }
+
+        // sort by timestamp
+        $scope.data[topic] = $scope.data[topic].sort(function(a, b){
+          if(a.timestamp.m.isBefore(b.timestamp.m)){
+            return -1;
+          }
+          else if(a.timestamp.m.isAfter(b.timestamp.m)){
+            return 1;
+          }
+          return 0;
+        });
+
+        // remove old data
+        $scope.data[topic] = $scope.data[topic].map(function(datum){
+          if(datum.timestamp.m.isBefore(earliestAllowedTimestamp)){
+            return null;
+          }
+          return datum;
+        }).filter(function(datum){
+          return (datum != null);
+        });
+      });
+
+      // determine the earliest and latest dates represented by the data
+      var most_recent_times = $scope.sensorTypesWithoutTime.map(function(sensorType, mm){
+        if($scope["mostRecent" + sensorType + "Time"]){
+          return $scope["mostRecent" + sensorType + "Time"];
+        }
+        return null;
+      }).filter(function(val){
+        return (val != null);
+      });
+
+      $scope.mostRecentTime = most_recent_times.reduce(function(answerSoFar, currentValue){
+
+        if(answerSoFar == null){
+          return currentValue;
+        }
+
+        if(currentValue.isAfter(answerSoFar)){
+          return currentValue;
+        }
+
+        return answerSoFar;
+
+      }, null);
+
+      $scope.mostRecentTime = moment($scope.mostRecentTime);
+      $scope.extents_latest_date = moment();
+      $scope.extents_earliest_date = moment(earliestAllowedTimestamp);
+
 
       if($scope.mostRecentTime && $scope.mostRecentTime.format) {
         $scope.mostRecentTime = $sce.trustAsHtml($scope.mostRecentTime.format("MMMM Do YYYY, h:mm:ss a"));
@@ -296,10 +278,10 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   }
 
   $scope.renderPlots = function(){
-    $scope.sensorTypes.forEach(function(currentValue, ii){
+    $scope.sensorTypesWithoutTime.forEach(function(currentValue, ii){
       var sensorType = currentValue;
 
-      if(sensorType == "Time" || !$scope.hasSensorType(sensorType)){
+      if(!$scope.hasSensorType(sensorType)){
         return;
       }
 
@@ -375,8 +357,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           $timeout(function () {
             try {
               if (eventdata["xaxis.autorange"]) {
-                $scope.zoom_earliest_timestamp = $scope.earliestDateAvailable;
-                $scope.zoom_latest_timestamp = $scope.latestDateAvailable;
+                $scope.zoom_earliest_timestamp = null;
+                $scope.zoom_latest_timestamp = null;
 
               }
               else if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
