@@ -27,6 +27,7 @@ module.exports = function(config) {
                 console.log(response.body);
                 console.log("Got 400, waiting 30 seconds before trying again");
                 return Promise.delay(30000).then(function(){
+                    console.log("Requesting " + url + " after having waited 30 seconds");
                     return getUntilNot400(theUrl);
                 });
             }

@@ -21,6 +21,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.downloadInProgress = false;
 
   $scope.durations = [
+    {name: "Choose Duration...", value: 0},
     {name: "5 minutes", value: 300},
     {name:"15 minutes", value: 900},
     {name:"1 hour", value: 3600},
@@ -36,7 +37,10 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     if(angular.isDefined($scope.stopFetching)){
       $interval.cancel($scope.stopFetching);
     }
-    $timeout(kickoff1, 0, true, 5, $scope.selectedDuration.value);
+
+    if($scope.selectedDuration.value != 0) {
+      $timeout(kickoff1, 0, true, 5, $scope.selectedDuration.value);
+    }
   };
 
   $scope.registeredSensorTypePlotCallbacks = [];
@@ -183,7 +187,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       $scope.knownTopics.forEach(function(topic, ii){
         // add the new data
         if(data[topic]) {
-          $scope.data[topic] = $scope.data[topic].concat(data[topic]);
+          $scope.data[topic] =  $scope.data[topic].concat(data[topic]);
         }
 
         // sort by timestamp
@@ -407,6 +411,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, false, 10, true); //thereafter fetch 10 seconds, not manually rescheduled
   }
 
-  $timeout(kickoff1, 0, true, 10, 600);    // fetch an 10 seconds immediately, then the 1 hour for bulk
+  // don't automatically do anything
+  // $timeout(kickoff1, 0, true, 10, 600);    // fetch an 10 seconds immediately, then the 1 hour for bulk
 
 });
