@@ -19,9 +19,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.mostRecentTime = null;
   $scope.mostRecentTimeTime = true; // necessary for uniform treatment
   $scope.downloadInProgress = false;
+  $scope.initialized = false;
 
   $scope.durations = [
-    {name: "Choose Duration...", value: 0},
     {name: "5 minutes", value: 300},
     {name:"15 minutes", value: 900},
     {name:"1 hour", value: 3600},
@@ -411,7 +411,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, false, 10, true); //thereafter fetch 10 seconds, not manually rescheduled
   }
 
-  // don't automatically do anything
-  // $timeout(kickoff1, 0, true, 10, 600);    // fetch an 10 seconds immediately, then the 1 hour for bulk
 
+  if(!$scope.initialized) {
+    $scope.initialized = true;
+    $timeout(kickoff1, 0, true, 10, 600);    // fetch an 10 seconds immediately, then the 1 hour for bulk
+  }
 });
