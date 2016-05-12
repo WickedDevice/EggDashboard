@@ -51,6 +51,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.zoom_earliest_timestamp = null;
   $scope.zoom_latest_timestamp = null;
 
+  $scope.num_sensor_types = 8;
+
   $scope.data = {
     "/orgs/wd/aqe/temperature":[],
     "/orgs/wd/aqe/humidity":[],
@@ -61,6 +63,14 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     "/orgs/wd/aqe/particulate":[],
     "/orgs/wd/aqe/co2":[]
   };
+  $scope.data["/orgs/wd/aqe/temperature/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/humidity/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/no2/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/co/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/so2/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/o3/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/particulate/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/co2/" + $routeParams.egg_id] = [];
 
   $scope.knownTopics = Object.keys($scope.data);
 
@@ -156,27 +166,35 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
           switch(datum.topic){
             case "/orgs/wd/aqe/temperature":
+            case "/orgs/wd/aqe/temperature/" + $routeParams.egg_id:
               updateTimestamp("temperature", timestamp, value);
               break;
             case "/orgs/wd/aqe/humidity":
+            case "/orgs/wd/aqe/humidity/" + $routeParams.egg_id:
               updateTimestamp("humidity", timestamp, value);
               break;
             case "/orgs/wd/aqe/no2":
+            case "/orgs/wd/aqe/no2/" + $routeParams.egg_id:
               updateTimestamp("NO2", timestamp, value);
               break;
             case "/orgs/wd/aqe/co":
+            case "/orgs/wd/aqe/co/" + $routeParams.egg_id:
               updateTimestamp("CO", timestamp, value);
               break;
-            case "/orgs/wd/aqe/SO2":
+            case "/orgs/wd/aqe/so2":
+            case "/orgs/wd/aqe/so2/" + $routeParams.egg_id:
               updateTimestamp("SO2", timestamp, value);
               break;
-            case "/orgs/wd/aqe/O3":
+            case "/orgs/wd/aqe/o3":
+            case "/orgs/wd/aqe/o3/" + $routeParams.egg_id:
               updateTimestamp("temperature", timestamp, value);
               break;
             case "/orgs/wd/aqe/particulate":
+            case "/orgs/wd/aqe/particulate/" + $routeParams.egg_id:
               updateTimestamp("particulate", timestamp, value);
               break;
             case "/orgs/wd/aqe/co2":
+            case "/orgs/wd/aqe/co2/" + $routeParams.egg_id:
               updateTimestamp("CO2", timestamp, value);
               break;
           }
@@ -260,6 +278,15 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           "/orgs/wd/aqe/particulate":[],
           "/orgs/wd/aqe/co2":[]
         };
+
+        $scope.data["/orgs/wd/aqe/temperature/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/humidity/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/no2/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/co/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/so2/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/o3/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/particulate/" + $routeParams.egg_id] = [];
+        $scope.data["/orgs/wd/aqe/co2/" + $routeParams.egg_id] = [];
       }
       console.log("Completing fetch of " + seconds + " seconds");
       $scope.downloadInProgress = false;
@@ -300,7 +327,14 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
       var units = null;
 
-      trace.y = $scope.data[$scope.knownTopics[ii]].map(function(datum){
+      // which known topics index should we use for this sensor type
+      var topicIndex = ii;
+      if($scope.data[$scope.knownTopics[topicIndex]].length == 0){
+        topicForSensor = $scope.knownTopics[ii + $scope.num_sensor_types];
+        topicIndex += $scope.num_sensor_types;
+      }
+
+      trace.y = $scope.data[$scope.knownTopics[topicIndex]].map(function(datum){
         if($scope.zoom_earliest_timestamp && $scope.zoom_latest_timestamp
             && (datum.timestamp.m.isAfter($scope.zoom_latest_timestamp)
                   || datum.timestamp.m.isBefore($scope.zoom_earliest_timestamp))){
@@ -327,7 +361,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         return value !== null;
       });
 
-      trace.x = $scope.data[$scope.knownTopics[ii]].map(function(datum){
+      trace.x = $scope.data[$scope.knownTopics[topicIndex]].map(function(datum){
         if($scope.zoom_earliest_timestamp && $scope.zoom_latest_timestamp
           && (datum.timestamp.m.isAfter($scope.zoom_latest_timestamp)
           || datum.timestamp.m.isBefore($scope.zoom_earliest_timestamp))){
