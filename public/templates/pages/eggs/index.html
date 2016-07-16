@@ -19,6 +19,7 @@
                             ng-model="selectedDuration"
                             ng-change="durationChange()"
                             ng-init="selectedDuration = durations[0]"
+                            ng-disabled="!initialized || loading"
                             ng-options="option.name for option in durations">
                     </select>
                 </form>

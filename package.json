@@ -28,6 +28,7 @@
     "lodash": "^4.0.0",
     "plotly.js": "^1.7.0",
     "moment": "^2.13.0",
+    "promise-do-whilst": "^1.0.1",
     "leaflet-markercluster": "^0.2.0"
   }
 }

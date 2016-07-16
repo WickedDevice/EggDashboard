@@ -20,6 +20,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.mostRecentTimeTime = true; // necessary for uniform treatment
   $scope.downloadInProgress = false;
   $scope.initialized = false;
+  $scope.loading = false;
 
   $scope.durations = [
     {name: "5 minutes", value: 300},
@@ -34,12 +35,13 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
   $scope.durationChange = function(){
     console.log("selection changed to " + $scope.selectedDuration.name);
+    $scope.downloadInProgress = false;
     if(angular.isDefined($scope.stopFetching)){
       $interval.cancel($scope.stopFetching);
     }
 
     if($scope.selectedDuration.value != 0) {
-      $timeout(kickoff1, 0, true, 5, $scope.selectedDuration.value);
+      return fetchBlockThenInterval($scope.selectedDuration.value, 10);
     }
   };
 
@@ -125,171 +127,36 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }
   }
 
-  $scope.fetchDataAndRenderPlots = function (manuallyRescheduled, seconds, render){
-
+  $scope.fetchDataAndRenderPlots = function (manuallyRescheduled, seconds, render, callback){
     if($scope.downloadInProgress){
       if(manuallyRescheduled) {
         // retry in 10 seconds
         console.log("Rescheduling fetch");
-        $timeout($scope.fetchDataAndRenderPlots, 10000, true, manuallyRescheduled, seconds, render);
+        $timeout($scope.fetchDataAndRenderPlots.bind(null, true, seconds, render, callback), 10000);
       }
       return;
     }
     console.log("Executing fetch of " + seconds + " seconds");
     $scope.downloadInProgress = true;
 
-    $http({method: 'GET', url:'egg/' + $routeParams.egg_id + '?seconds=' + seconds, timeout: 100000000}).then(function(data){
+    fetchData('egg/' + $routeParams.egg_id + '?seconds=' + seconds, seconds, render, callback);
+  };
+
+  function fetchData(url, seconds, render, callback){
+    var theUrl = url;
+    var theSeconds = seconds;
+    var theRender = render;
+    var theCallback = callback;
+    $http({method: 'GET', url: theUrl, timeout: 100000000}).then(function(data){
       data = data.data;
 
-      Object.keys(data).forEach(function(topic, ii){
-        data[topic].forEach(function(datum, jj){
-          datum.timestamp = { m: moment(datum.timestamp)}; // convert all the timestamp fields to moments
-          datum.timestamp.str = datum.timestamp.m.format('YYYY-MM-DD HH:mm:ss'); // for plotly
-          var timestamp = moment(datum.timestamp.m);
-
-          var value = null;
-          if(isNumeric(datum["compensated-value"])){
-            value = datum["compensated-value"];
-          }
-          else if(isNumeric(datum["converted-value"])){
-            value = datum["converted-value"];
-          }
-
-
-          if(value !== null){
-            value = value.toFixed(2);
-            value += ' ' + symbolic(datum["converted-units"]);
-          }
-          else{
-            return;
-          }
-
-          switch(datum.topic){
-            case "/orgs/wd/aqe/temperature":
-            case "/orgs/wd/aqe/temperature/" + $routeParams.egg_id:
-              updateTimestamp("Temperature", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/humidity":
-            case "/orgs/wd/aqe/humidity/" + $routeParams.egg_id:
-              updateTimestamp("Humidity", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/no2":
-            case "/orgs/wd/aqe/no2/" + $routeParams.egg_id:
-              updateTimestamp("NO2", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/co":
-            case "/orgs/wd/aqe/co/" + $routeParams.egg_id:
-              updateTimestamp("CO", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/so2":
-            case "/orgs/wd/aqe/so2/" + $routeParams.egg_id:
-              updateTimestamp("SO2", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/o3":
-            case "/orgs/wd/aqe/o3/" + $routeParams.egg_id:
-              updateTimestamp("O3", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/particulate":
-            case "/orgs/wd/aqe/particulate/" + $routeParams.egg_id:
-              updateTimestamp("Particulate", timestamp, value);
-              break;
-            case "/orgs/wd/aqe/co2":
-            case "/orgs/wd/aqe/co2/" + $routeParams.egg_id:
-              updateTimestamp("CO2", timestamp, value);
-              break;
-          }
-        });
-      });
-
-      var earliestAllowedTimestamp = moment().subtract($scope.selectedDuration.value, "seconds");
-      $scope.knownTopics.forEach(function(topic, ii){
-        // add the new data
-        if(data[topic]) {
-          $scope.data[topic] =  $scope.data[topic].concat(data[topic]);
-        }
-
-        // sort by timestamp
-        $scope.data[topic] = $scope.data[topic].sort(function(a, b){
-          if(a.timestamp.m.isBefore(b.timestamp.m)){
-            return -1;
-          }
-          else if(a.timestamp.m.isAfter(b.timestamp.m)){
-            return 1;
-          }
-          return 0;
-        });
-
-        // remove old data
-        $scope.data[topic] = $scope.data[topic].map(function(datum){
-          if(datum.timestamp.m.isBefore(earliestAllowedTimestamp)){
-            return null;
-          }
-          return datum;
-        }).filter(function(datum){
-          return (datum != null);
-        });
-      });
-
-      // determine the earliest and latest dates represented by the data
-      var most_recent_times = $scope.sensorTypesWithoutTime.map(function(sensorType, mm){
-        if($scope["mostRecent" + sensorType + "Time"]){
-          return $scope["mostRecent" + sensorType + "Time"];
-        }
-        return null;
-      }).filter(function(val){
-        return (val != null);
-      });
-
-      $scope.mostRecentTime = most_recent_times.reduce(function(answerSoFar, currentValue){
-
-        if(answerSoFar == null){
-          return currentValue;
-        }
-
-        if(currentValue.isAfter(answerSoFar)){
-          return currentValue;
-        }
-
-        return answerSoFar;
-
-      }, null);
-
-      $scope.mostRecentTime = moment($scope.mostRecentTime);
-      $scope.extents_latest_date = moment();
-      $scope.extents_earliest_date = moment(earliestAllowedTimestamp);
-
-
-      if($scope.mostRecentTime && $scope.mostRecentTime.format) {
-        $scope.mostRecentTime = $sce.trustAsHtml($scope.mostRecentTime.format("MMMM Do YYYY, h:mm:ss a"));
+      if(typeof data !== 'object'){
+        $timeout(fetchData.bind(null, theUrl, theSeconds, theRender, theCallback), 5000);
+        return;
       }
 
-      if(render && !$scope.disableAutoRender) {
-        $scope.renderPlots();
-      }
-      else if(!render){
-        // go ahead wipe those "data series" results
-        $scope.data = {
-          "/orgs/wd/aqe/temperature":[],
-          "/orgs/wd/aqe/humidity":[],
-          "/orgs/wd/aqe/no2":[],
-          "/orgs/wd/aqe/co":[],
-          "/orgs/wd/aqe/so2":[],
-          "/orgs/wd/aqe/o3":[],
-          "/orgs/wd/aqe/particulate":[],
-          "/orgs/wd/aqe/co2":[]
-        };
-
-        $scope.data["/orgs/wd/aqe/temperature/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/humidity/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/no2/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/co/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/so2/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/o3/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/particulate/" + $routeParams.egg_id] = [];
-        $scope.data["/orgs/wd/aqe/co2/" + $routeParams.egg_id] = [];
-      }
-      console.log("Completing fetch of " + seconds + " seconds");
-      $scope.downloadInProgress = false;
+      processData(data, seconds, render);
+        theCallback(false);
     }, // end success
     function(response){
       console.log("Download Failed");
@@ -298,8 +165,161 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       console.log(response.statusText);
       console.log(response.headers());
       $scope.downloadInProgress = false;
+      theCallback(true);
     }); // end error
-  };
+  }
+
+  function processData(data, seconds, render){
+    Object.keys(data).forEach(function(topic, ii){
+      data[topic].forEach(function(datum, jj){
+        datum.timestamp = { m: moment(datum.timestamp)}; // convert all the timestamp fields to moments
+        datum.timestamp.str = datum.timestamp.m.format('YYYY-MM-DD HH:mm:ss'); // for plotly
+        var timestamp = moment(datum.timestamp.m);
+
+        var value = null;
+        if(isNumeric(datum["compensated-value"])){
+          value = datum["compensated-value"];
+        }
+        else if(isNumeric(datum["converted-value"])){
+          value = datum["converted-value"];
+        }
+
+
+        if(value !== null){
+          value = value.toFixed(2);
+          value += ' ' + symbolic(datum["converted-units"]);
+        }
+        else{
+          return;
+        }
+
+        switch(datum.topic){
+          case "/orgs/wd/aqe/temperature":
+          case "/orgs/wd/aqe/temperature/" + $routeParams.egg_id:
+            updateTimestamp("Temperature", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/humidity":
+          case "/orgs/wd/aqe/humidity/" + $routeParams.egg_id:
+            updateTimestamp("Humidity", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/no2":
+          case "/orgs/wd/aqe/no2/" + $routeParams.egg_id:
+            updateTimestamp("NO2", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/co":
+          case "/orgs/wd/aqe/co/" + $routeParams.egg_id:
+            updateTimestamp("CO", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/so2":
+          case "/orgs/wd/aqe/so2/" + $routeParams.egg_id:
+            updateTimestamp("SO2", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/o3":
+          case "/orgs/wd/aqe/o3/" + $routeParams.egg_id:
+            updateTimestamp("O3", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/particulate":
+          case "/orgs/wd/aqe/particulate/" + $routeParams.egg_id:
+            updateTimestamp("Particulate", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/co2":
+          case "/orgs/wd/aqe/co2/" + $routeParams.egg_id:
+            updateTimestamp("CO2", timestamp, value);
+            break;
+        }
+      });
+    });
+
+    var earliestAllowedTimestamp = moment().subtract($scope.selectedDuration.value, "seconds");
+    $scope.knownTopics.forEach(function(topic, ii){
+      // add the new data
+      if(data[topic]) {
+        $scope.data[topic] =  $scope.data[topic].concat(data[topic]);
+      }
+
+      // sort by timestamp
+      $scope.data[topic] = $scope.data[topic].sort(function(a, b){
+        if(a.timestamp.m.isBefore(b.timestamp.m)){
+          return -1;
+        }
+        else if(a.timestamp.m.isAfter(b.timestamp.m)){
+          return 1;
+        }
+        return 0;
+      });
+
+      // remove old data
+      $scope.data[topic] = $scope.data[topic].map(function(datum){
+        if(datum.timestamp.m.isBefore(earliestAllowedTimestamp)){
+          return null;
+        }
+        return datum;
+      }).filter(function(datum){
+        return (datum != null);
+      });
+    });
+
+    // determine the earliest and latest dates represented by the data
+    var most_recent_times = $scope.sensorTypesWithoutTime.map(function(sensorType, mm){
+      if($scope["mostRecent" + sensorType + "Time"]){
+        return $scope["mostRecent" + sensorType + "Time"];
+      }
+      return null;
+    }).filter(function(val){
+      return (val != null);
+    });
+
+    $scope.mostRecentTime = most_recent_times.reduce(function(answerSoFar, currentValue){
+
+      if(answerSoFar == null){
+        return currentValue;
+      }
+
+      if(currentValue.isAfter(answerSoFar)){
+        return currentValue;
+      }
+
+      return answerSoFar;
+
+    }, null);
+
+    $scope.mostRecentTime = moment($scope.mostRecentTime);
+    $scope.extents_latest_date = moment();
+    $scope.extents_earliest_date = moment(earliestAllowedTimestamp);
+
+
+    if($scope.mostRecentTime && $scope.mostRecentTime.format) {
+      $scope.mostRecentTime = $sce.trustAsHtml($scope.mostRecentTime.format("MMMM Do YYYY, h:mm:ss a"));
+    }
+
+    if(render && !$scope.disableAutoRender) {
+      $scope.renderPlots();
+    }
+    else if(!render){
+      // go ahead wipe those "data series" results
+      $scope.data = {
+        "/orgs/wd/aqe/temperature":[],
+        "/orgs/wd/aqe/humidity":[],
+        "/orgs/wd/aqe/no2":[],
+        "/orgs/wd/aqe/co":[],
+        "/orgs/wd/aqe/so2":[],
+        "/orgs/wd/aqe/o3":[],
+        "/orgs/wd/aqe/particulate":[],
+        "/orgs/wd/aqe/co2":[]
+      };
+
+      $scope.data["/orgs/wd/aqe/temperature/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/humidity/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/no2/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/co/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/so2/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/o3/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/particulate/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/co2/" + $routeParams.egg_id] = [];
+    }
+    console.log("Completing fetch of " + seconds + " seconds");
+    $scope.downloadInProgress = false;
+  }
 
   // render plots reflects on $scope.data and targets
   // constructs the properly formatted plotly traces
@@ -435,19 +455,53 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     });
   };
 
-  function kickoff1(dur, bulkDuration){
-    $scope.fetchDataAndRenderPlots(true, dur); // manually rescheduled
-    $timeout(kickoff2, 0, true, bulkDuration, true); // fetch an bulk immediately
+  function fetchBlockThenInterval(blockSeconds, intervalSeconds){
+    $scope.loading = true;
+    $('body').addClass("loading");
+    return new Promise(function(resolve, reject){
+      // $scope.fetchDataAndRenderPlots(manuallyRescheduled, seconds, render, callback)
+      $scope.fetchDataAndRenderPlots(true, blockSeconds, true, function(err){
+        if(err){
+          reject();
+        }
+        else{
+          resolve();
+        }
+      });
+    }).then(function(){
+      // then, once that completes, kick off a timer to add 10 seconds of data to the plots
+      $scope.stopFetching = $interval(function(){
+        $scope.fetchDataAndRenderPlots(false, intervalSeconds, true, function(err){
+          console.log("Interval completed");
+        });
+      }, 10000);
+    }).then(function(){
+        $('body').removeClass("loading");
+        $scope.loading = false;
+    });
   }
-
-  function kickoff2(dur, render){
-    $scope.fetchDataAndRenderPlots(true, dur, render); // manually rescheduled
-    $scope.stopFetching = $interval($scope.fetchDataAndRenderPlots, 10000, 0, true, false, 10, true); //thereafter fetch 10 seconds, not manually rescheduled
-  }
-
 
   if(!$scope.initialized) {
-    $scope.initialized = true;
-    $timeout(kickoff1, 0, true, 10, 600);    // fetch an 10 seconds immediately, then the 1 hour for bulk
+    // to bootstrap the application, first request the last 10 seconds of data in order to populate the text data
+    return new Promise(function(resolve, reject){
+      // $scope.fetchDataAndRenderPlots(manuallyRescheduled, seconds, render, callback)
+      $scope.fetchDataAndRenderPlots(true, 10, false, function(err){
+        if(err){
+          reject();
+        }
+        else{
+          resolve();
+        }
+      });
+    }).then(function() {
+      // then, once that completes, request the default plot duration
+      return fetchBlockThenInterval(600, 10);
+    }).then(function(){
+      $scope.initialized = true;
+    }).catch(function(err){
+      console.log(err.message);
+      console.log(err.stack);
+    });
+
   }
 });
