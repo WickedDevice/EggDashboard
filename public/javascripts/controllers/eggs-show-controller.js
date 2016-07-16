@@ -167,11 +167,11 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           switch(datum.topic){
             case "/orgs/wd/aqe/temperature":
             case "/orgs/wd/aqe/temperature/" + $routeParams.egg_id:
-              updateTimestamp("temperature", timestamp, value);
+              updateTimestamp("Temperature", timestamp, value);
               break;
             case "/orgs/wd/aqe/humidity":
             case "/orgs/wd/aqe/humidity/" + $routeParams.egg_id:
-              updateTimestamp("humidity", timestamp, value);
+              updateTimestamp("Humidity", timestamp, value);
               break;
             case "/orgs/wd/aqe/no2":
             case "/orgs/wd/aqe/no2/" + $routeParams.egg_id:
@@ -187,11 +187,11 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
               break;
             case "/orgs/wd/aqe/o3":
             case "/orgs/wd/aqe/o3/" + $routeParams.egg_id:
-              updateTimestamp("temperature", timestamp, value);
+              updateTimestamp("O3", timestamp, value);
               break;
             case "/orgs/wd/aqe/particulate":
             case "/orgs/wd/aqe/particulate/" + $routeParams.egg_id:
-              updateTimestamp("particulate", timestamp, value);
+              updateTimestamp("Particulate", timestamp, value);
               break;
             case "/orgs/wd/aqe/co2":
             case "/orgs/wd/aqe/co2/" + $routeParams.egg_id:
