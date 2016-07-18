@@ -137,6 +137,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       return;
     }
     console.log("Executing fetch of " + seconds + " seconds");
+    $scope.loading = true;
     $scope.downloadInProgress = true;
 
     fetchData('egg/' + $routeParams.egg_id + '?seconds=' + seconds, seconds, render, callback);
@@ -473,6 +474,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       // then, once that completes, kick off a timer to add 10 seconds of data to the plots
       $scope.stopFetching = $interval(function(){
         $scope.fetchDataAndRenderPlots(false, intervalSeconds, true, function(err){
+          $scope.loading = false;
           console.log("Interval completed");
         });
       }, 10000);
