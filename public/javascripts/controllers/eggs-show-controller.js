@@ -184,7 +184,6 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           value = datum["converted-value"];
         }
 
-
         if(value !== null){
           value = value.toFixed(2);
           value += ' ' + symbolic(datum["converted-units"]);
@@ -403,54 +402,56 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       var layout = {height: 400};
       layout.yaxis = {title: units};
 
-      Plotly.newPlot(sensorType + '_scatterplot', [trace], layout);
+      if(trace.x.length > 0 && trace.y.length > 0) {
+        Plotly.newPlot(sensorType + '_scatterplot', [trace], layout);
 
-      var callbacksAlreadyRegistered = true;
-      if($scope.registeredSensorTypePlotCallbacks.indexOf(sensorType) == -1){
-        callbacksAlreadyRegistered = false;
-      }
+        var callbacksAlreadyRegistered = true;
+        if ($scope.registeredSensorTypePlotCallbacks.indexOf(sensorType) == -1) {
+          callbacksAlreadyRegistered = false;
+        }
 
-      if(!callbacksAlreadyRegistered) {
-        $('#' + sensorType + "_scatterplot").bind('plotly_relayout', function (event, eventdata) {
-          $timeout(function () {
-            try {
-              if (eventdata["xaxis.autorange"]) {
-                $scope.zoom_earliest_timestamp = null;
-                $scope.zoom_latest_timestamp = null;
-
-              }
-              else if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
-                $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
-                $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
-              }
-            }
-            catch (e) {
-              console.log(e);
-            }
-            $scope.renderPlots();
-            $scope.disableAutoRender = false;
-            console.log(sensorType + " Relayout Auto Render Enabled");
-
-          });
-        });
-
-
-        $('#' + sensorType + "_scatterplot")
-          .on('plotly_unhover', function (data) {
+        if (!callbacksAlreadyRegistered) {
+          $('#' + sensorType + "_scatterplot").bind('plotly_relayout', function (event, eventdata) {
             $timeout(function () {
+              try {
+                if (eventdata["xaxis.autorange"]) {
+                  $scope.zoom_earliest_timestamp = null;
+                  $scope.zoom_latest_timestamp = null;
+
+                }
+                else if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
+                  $scope.zoom_earliest_timestamp = moment(eventdata["xaxis.range[0]"]);
+                  $scope.zoom_latest_timestamp = moment(eventdata["xaxis.range[1]"]);
+                }
+              }
+              catch (e) {
+                console.log(e);
+              }
+              $scope.renderPlots();
               $scope.disableAutoRender = false;
-              console.log(sensorType + " Unhover Auto Render Enabled");
+              console.log(sensorType + " Relayout Auto Render Enabled");
+
             });
           });
 
-        $('#' + sensorType + "_scatterplot").on('plotly_click', function (data) {
-          $timeout(function () {
-            $scope.disableAutoRender = true;
-            console.log(sensorType + " Click Auto Render Disabled");
-          });
-        });
 
-        $scope.registeredSensorTypePlotCallbacks.push(sensorType);
+          $('#' + sensorType + "_scatterplot")
+            .on('plotly_unhover', function (data) {
+              $timeout(function () {
+                $scope.disableAutoRender = false;
+                console.log(sensorType + " Unhover Auto Render Enabled");
+              });
+            });
+
+          $('#' + sensorType + "_scatterplot").on('plotly_click', function (data) {
+            $timeout(function () {
+              $scope.disableAutoRender = true;
+              console.log(sensorType + " Click Auto Render Disabled");
+            });
+          });
+
+          $scope.registeredSensorTypePlotCallbacks.push(sensorType);
+        }
       }
     });
   };
