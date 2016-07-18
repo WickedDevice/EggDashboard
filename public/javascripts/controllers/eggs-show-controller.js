@@ -26,9 +26,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     {name: "5 minutes", value: 300},
     {name:"15 minutes", value: 900},
     {name:"1 hour", value: 3600},
-    {name:"8 hours", value: 28800}
-    //{name:"16 hours", value: 57600},
-    //{name:"24 hours", value: 86400}
+    {name:"8 hours", value: 28800},
+    {name:"16 hours", value: 57600},
+    {name:"24 hours", value: 86400}
   ];
 
   $scope.selectedDuration = {name: "5 minutes", value: 300};
