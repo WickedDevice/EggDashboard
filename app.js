@@ -28,8 +28,9 @@ app.use(express.static(path.join(__dirname, 'node_modules/angular')));
 app.use(express.static(path.join(__dirname, 'node_modules/angular-route')));
 app.use(express.static(path.join(__dirname, 'node_modules/angular-resource')));
 app.use(express.static(path.join(__dirname, 'node_modules/plotly.js/dist')));
-app.use(express.static(path.join(__dirname, 'node_modules/moment/min')));
-app.use(express.static(path.join(__dirname, 'node_modules/leaflet-markercluster')));
+app.use(express.static(path.join(__dirname, 'node_modules/moment')));
+app.use(express.static(path.join(__dirname, 'node_modules/leaflet/dist')));
+app.use(express.static(path.join(__dirname, 'node_modules/leaflet.markercluster/dist')));
 app.use('/', routes);
 app.use('/users', users);
 

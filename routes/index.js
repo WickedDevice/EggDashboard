@@ -3,14 +3,34 @@ var router = express.Router();
 var config = require('../../eggdataconfig')();
 var api = require('../opensensors')(config);
 var Promise = require('bluebird');
-var moment = require('moment')
+var moment = require('moment');
+var MongoClient = require('mongodb').MongoClient;
 
 var pendingRequests = {}; // each entry in this object represents an API request in progress, one per S/N
                           // if the value is an object the download is complete, number means pending (time period)
 
+var findDocuments = function(db, colxn, callback) {
+  // Get the documents collection
+  var collection = db.collection(colxn);
+  // Find some documents
+  collection.find({}).toArray(function(err, docs) {
+    callback(docs);
+  });
+};
+
 /* GET home page. */
 router.get("/", function(req, res, next){
   res.render('index');
+});
+
+router.get("/all-eggs", (req, res, next) => {
+  var url = 'mongodb://localhost:27017/airqualityegg';
+  MongoClient.connect(url, function(err, db) {
+    console.log("Connected correctly to server");
+    findDocuments(db, 'eggs', (docs) => {
+      res.json(docs);
+    });
+  });
 });
 
 router.get("/egg/:serialnumber", function(req, res, next){
