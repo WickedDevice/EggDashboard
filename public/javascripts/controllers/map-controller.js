@@ -24,7 +24,11 @@ angular.module('MyApp').controller('MapController', function($scope, $routeParam
 
     $http.get('all-eggs').success((data) => {
       data.forEach((d) => {
-        var marker = L.marker([+d.loc.coordinates[1], +d.loc.coordinates[0]]);
+        var marker = L.marker([+d.loc.coordinates[1], +d.loc.coordinates[0]], {
+          icon: L.icon({
+            iconUrl: 'images/egg-icon.png'
+          })
+        });
         markers.addLayer(marker);
       });
     });
