@@ -1,4 +1,4 @@
-angular.module('MyApp').controller('MapController', function($scope, $routeParams, $http, $interval, $timeout, $sce) {
+angular.module('MyApp').controller('MapController', function($scope, $routeParams, $http, $interval, $timeout, $sce, $location) {
 
   function renderMap(lat, lng){
     //L.mapbox.accessToken = 'pk.eyJ1Ijoid2lja2VkZGV2aWNlIiwiYSI6ImNpbnA0NWliZTEwNWt1Z2x5bWtxc2tsZnMifQ.Yl5tvkrgD74S6i0ynNJntg';
@@ -27,14 +27,22 @@ angular.module('MyApp').controller('MapController', function($scope, $routeParam
         var marker = L.marker([+d.loc.coordinates[1], +d.loc.coordinates[0]], {
           icon: L.icon({
             iconUrl: 'images/egg-icon.png'
-          })
+          }),
+          title: d.title,
+          serial: d.serial
         });
+
+        marker.on('click', (e) => {
+          $timeout(() => {
+            $location.path('egg/' + e.target.options.serial)
+          });
+        });
+
         markers.addLayer(marker);
       });
     });
 
     mymap.addLayer(markers);
-
   }
 
   if ("geolocation" in navigator) {
