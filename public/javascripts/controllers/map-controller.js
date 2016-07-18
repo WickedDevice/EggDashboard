@@ -22,7 +22,7 @@ angular.module('MyApp').controller('MapController', function($scope, $routeParam
 
     var markers = L.markerClusterGroup();
 
-    $http.get('/all-eggs').success((data) => {
+    $http.get('all-eggs').success((data) => {
       data.forEach((d) => {
         var marker = L.marker([+d.loc.coordinates[1], +d.loc.coordinates[0]]);
         markers.addLayer(marker);
