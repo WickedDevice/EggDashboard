@@ -419,7 +419,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         else if(isNumeric(datum["converted-value"])){
           return datum.timestamp.str;
         }
-        else if(isNumeric(datum["tvoc-units"])){
+        else if(isNumeric(datum["compensated-tvoc"])){
           return datum.timestamp.str;
         }
         else{
