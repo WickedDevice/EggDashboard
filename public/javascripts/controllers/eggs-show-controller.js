@@ -393,6 +393,13 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
 
           return datum["converted-value"];
         }
+        else if(isNumeric(datum["compensated-tvoc"])){
+          if(!units){
+            units = sensorType + ' ' + symbolic(datum['tvoc-units']);
+          }
+
+          return datum["compensated-tvoc"];
+        }
         else{
           return null;
         }
@@ -410,6 +417,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           return datum.timestamp.str;
         }
         else if(isNumeric(datum["converted-value"])){
+          return datum.timestamp.str;
+        }
+        else if(isNumeric(datum["tvoc-units"])){
           return datum.timestamp.str;
         }
         else{
