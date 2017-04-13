@@ -55,7 +55,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.zoom_earliest_timestamp = null;
   $scope.zoom_latest_timestamp = null;
 
-  $scope.num_sensor_types = 8;
+  $scope.num_sensor_types = 9;
 
   $scope.data = {
     "/orgs/wd/aqe/temperature":[],
