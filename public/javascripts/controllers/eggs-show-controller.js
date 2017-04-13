@@ -10,6 +10,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.mostRecentSO2Time = null;
   $scope.mostRecentCO2 = null;
   $scope.mostRecentCO2Time = null;
+  $scope.mostRecentVOC = null;
+  $scope.mostRecentVOCTime = null;
   $scope.mostRecentCO = null;
   $scope.mostRecentCOTime = null;
   $scope.mostRecentO3 = null;
@@ -63,7 +65,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     "/orgs/wd/aqe/so2":[],
     "/orgs/wd/aqe/o3":[],
     "/orgs/wd/aqe/particulate":[],
-    "/orgs/wd/aqe/co2":[]
+    "/orgs/wd/aqe/co2":[],
+    "/orgs/wd/aqe/voc":[]
   };
   $scope.data["/orgs/wd/aqe/temperature/" + $routeParams.egg_id] = [];
   $scope.data["/orgs/wd/aqe/humidity/" + $routeParams.egg_id] = [];
@@ -73,10 +76,11 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.data["/orgs/wd/aqe/o3/" + $routeParams.egg_id] = [];
   $scope.data["/orgs/wd/aqe/particulate/" + $routeParams.egg_id] = [];
   $scope.data["/orgs/wd/aqe/co2/" + $routeParams.egg_id] = [];
+  $scope.data["/orgs/wd/aqe/voc/" + $routeParams.egg_id] = [];
 
   $scope.knownTopics = Object.keys($scope.data);
 
-  $scope.sensorTypes = ["Temperature", "Humidity", "NO2", "CO", "SO2", "O3", "Particulate", "CO2", "Time"];
+  $scope.sensorTypes = ["Temperature", "Humidity", "NO2", "CO", "SO2", "O3", "Particulate", "CO2", "VOC", "Time"];
   $scope.sensorTypesWithoutTime = $scope.sensorTypes.slice(0, -1);
   $scope.hasSensorType = function(sensorType){
     return ($scope["mostRecent" + sensorType] && $scope["mostRecent" + sensorType + "Time"]);
@@ -184,10 +188,19 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         else if(isNumeric(datum["converted-value"])){
           value = datum["converted-value"];
         }
+        else if(isNumeric(datum["compensated-tvoc"])){
+          value = datum["compensated-tvoc"];
+        }
 
         if(value !== null){
+
           value = value.toFixed(2);
-          value += ' ' + symbolic(datum["converted-units"]);
+          if(datum["converted-units"]){
+            value += ' ' + symbolic(datum["converted-units"]);
+          }
+          else if(datum["tvoc-units"]){
+            value += ' ' + symbolic(datum["tvoc-units"]);
+          }
         }
         else{
           return;
@@ -225,6 +238,10 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
           case "/orgs/wd/aqe/co2":
           case "/orgs/wd/aqe/co2/" + $routeParams.egg_id:
             updateTimestamp("CO2", timestamp, value);
+            break;
+          case "/orgs/wd/aqe/voc":
+          case "/orgs/wd/aqe/voc/" + $routeParams.egg_id:
+            updateTimestamp("VOC", timestamp, value);
             break;
         }
       });
@@ -305,7 +322,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         "/orgs/wd/aqe/so2":[],
         "/orgs/wd/aqe/o3":[],
         "/orgs/wd/aqe/particulate":[],
-        "/orgs/wd/aqe/co2":[]
+        "/orgs/wd/aqe/co2":[],
+        "/orgs/wd/aqe/voc":[]
       };
 
       $scope.data["/orgs/wd/aqe/temperature/" + $routeParams.egg_id] = [];
@@ -316,6 +334,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       $scope.data["/orgs/wd/aqe/o3/" + $routeParams.egg_id] = [];
       $scope.data["/orgs/wd/aqe/particulate/" + $routeParams.egg_id] = [];
       $scope.data["/orgs/wd/aqe/co2/" + $routeParams.egg_id] = [];
+      $scope.data["/orgs/wd/aqe/voc/" + $routeParams.egg_id] = [];
     }
     console.log("Completing fetch of " + seconds + " seconds");
     $scope.downloadInProgress = false;
