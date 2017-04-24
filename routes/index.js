@@ -86,7 +86,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
           promiseDoWhilst(() => {
             // do this...
             file = files.shift();
-            require(file).forEach((datum) => {
+            require("${workingDir}/${serialNumber}/${file}").forEach((datum) => {
               if(data[datum.topic]){
                 data[datum.topic].push(datum);
               }
@@ -104,7 +104,9 @@ router.get("/egg/:serialnumber", function(req, res, next){
             }); //clean up after yourself
           }).catch((error) => {
             console.log(error.message, error.stack);
-            res.json(false);
+            rimraf(workingDir, () => {
+              res.json(false);
+            }); //clean up after yourself
           });
         }
       }
