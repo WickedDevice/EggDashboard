@@ -154,7 +154,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
         if(fs.existsSync(workingDir)){
           rimraf(workingDir, () => {});
         }
-      }, 60 * 1000)
+      }, 30 * 60 * 1000); // 30 minutes
     }
   }
   catch(err){
