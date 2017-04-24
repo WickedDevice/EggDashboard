@@ -26,7 +26,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.loading = false;
   $scope.eggSerial = $routeParams.egg_id;
   $scope.routeDuration = $routeParams.duration || 60 * 5;
-  
+
   $scope.durations = [
     {name: "5 minutes", value: 300},
     {name:"15 minutes", value: 900},
@@ -549,7 +549,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       });
     }).then(function() {
       // then, once that completes, request the default plot duration
-      return fetchBlockThenInterval(600, 10);
+      return fetchBlockThenInterval($scope.routeDuration, 10);
     }).then(function(){
       $scope.initialized = true;
     }).catch(function(err){
