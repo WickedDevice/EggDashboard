@@ -143,7 +143,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
 
       // set a timeout and cleanup regardless after a minute
       setTimeout(() => {
-        fs.existsSync(workingDir){
+        if(fs.existsSync(workingDir)){
           rimraf(workingDir);
         }
       }, 60 * 1000)
