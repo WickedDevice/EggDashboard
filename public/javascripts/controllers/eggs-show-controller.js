@@ -24,7 +24,9 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.downloadInProgress = false;
   $scope.initialized = false;
   $scope.loading = false;
-
+  $scope.eggSerial = $routeParams.egg_id;
+  $scope.routeDuration = $routeParams.duration || 60 * 5;
+  
   $scope.durations = [
     {name: "5 minutes", value: 300},
     {name:"15 minutes", value: 900},
@@ -553,8 +555,5 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }).catch(function(err){
       console.log(err);
     });
-
-    $scope.eggSerial = $routeParams.egg_id;
-    $scope.routeDuration = $routeParams.duration || 60 * 5;
   }
 });
