@@ -66,8 +66,8 @@ router.get("/egg/:serialnumber", function(req, res, next){
         if (fs.existsSync(`${workingDir}/${serialNumber}`)) {
           files = fs.readdirSync(`${workingDir}/${serialNumber}`)
             .sort((a,b) => {
-              return fs.statSync(`${workingDir}/${req.params.id}/${a}`).mtime.getTime() -
-                fs.statSync(`${workingDir}/${req.params.id}/${b}`).mtime.getTime();
+              return fs.statSync(`${workingDir}/${serialNumber}/${a}`).mtime.getTime() -
+                fs.statSync(`${workingDir}/${serialNumber}/${b}`).mtime.getTime();
             });
         }
 
