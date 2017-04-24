@@ -102,6 +102,9 @@ router.get("/egg/:serialnumber", function(req, res, next){
               console.log("Egg to Client: ", data);
               res.json(data);
             }); //clean up after yourself
+          }).catch((error) => {
+            console.log(error.message, error.stack);
+            res.json(false);
           });
         }
       }
