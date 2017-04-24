@@ -15,13 +15,16 @@
             <div class="col-md-12">
                 <form name="myForm">
                     <label for="duration"> Duration: </label><br>
-                    <select name="duration"
+                    <!-- <select name="duration"
                             ng-model="selectedDuration"
                             ng-change="durationChange()"
                             ng-init="selectedDuration = durations[0]"
                             ng-disabled="!initialized || loading"
                             ng-options="option.name for option in durations">
-                    </select>
+                    </select> -->
+                    <span ng-repeat="duration in durations">
+                      <a href="https://airqualityegg.wickeddevice.com/dashboard/#/egg/{{eggSerial}}?seconds={{duration.value}}">{{duration.name}}</a>&nbsp;
+                    </span>
                 </form>
             </div>
         </div>
