@@ -57,7 +57,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
     if (guid && fs.existsSync(workingDir)) {
       console.log(`${workingDir} exists`);
       // accumulate all the data that currently exists and give it back
-      let status = require(`${workingDir}/status.json`);
+      let status = fs.readFileSync(`${workingDir}/status.json`);
       console.log(`status = ${JSON.stringify(status, null, 2)}`);
       if(status.complete){
         let data = {};
