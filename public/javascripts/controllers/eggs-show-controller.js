@@ -120,6 +120,24 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }
   };
 
+  // this function returns a string to append to a url path
+  // to add the [flat] params object as a querystring
+  function urlParams(params){
+    var ret = "";
+    if(Object.keys(params).length > 0){ // if there are any optional params
+      ret += '?';
+      var encodeParams = Object.keys(params).map(function(key){
+        if(key != "status") { // special case, not an OpenSensors parameter
+          return key + '=' + encodeURIComponent(params[key]);
+        }
+      });
+
+      ret += encodeParams.join('&');
+    }
+    return ret;
+  }
+
+
   function symbolic(unit){
     switch(unit){
       case "degC":
@@ -545,8 +563,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }).then(function(){
       $scope.initialized = true;
     }).catch(function(err){
-      console.log(err.message);
-      console.log(err.stack);
+      console.log(err);
     });
 
   }
