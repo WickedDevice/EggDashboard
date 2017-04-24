@@ -86,7 +86,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
           promiseDoWhilst(() => {
             // do this...
             file = files.shift();
-            require("${workingDir}/${serialNumber}/${file}").forEach((datum) => {
+            require(`${workingDir}/${serialNumber}/${file}`).forEach((datum) => {
               if(data[datum.topic]){
                 data[datum.topic].push(datum);
               }
