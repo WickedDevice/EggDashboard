@@ -38,7 +38,7 @@ router.get("/all-eggs", (req, res, next) => {
 router.get("/egg/:serialnumber", function(req, res, next){
   try{
     var serialNumber = req.params.serialnumber;
-    var guid = req.params.guid;
+    var guid = req.query.guid;
 
     var duration_seconds = parseInt(req.query.seconds);
     if(!duration_seconds){
