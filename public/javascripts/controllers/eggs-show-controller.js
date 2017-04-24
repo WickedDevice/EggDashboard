@@ -163,10 +163,11 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     var theRender = render;
     var theCallback = callback;
 
-    if($scope.timeOfLastHttp && moment().diff($scope.timeOfLastHttp, "seconds") < 10){
-      $scope.guid = null;
-      theCallback(false);
-      return; // cancel this one
+    if($scope.timeOfLastHttp && moment().diff($scope.timeOfLastHttp, "seconds") < 3){
+      // $scope.guid = null;
+      // theCallback(false);
+      // return; // cancel this one
+      console.log("Successive HTTP calls in fewer than 3 seconds detected");
     }
 
     $scope.timeOfLastHttp = moment();
