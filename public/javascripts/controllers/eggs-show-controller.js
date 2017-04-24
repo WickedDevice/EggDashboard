@@ -533,7 +533,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       // $scope.fetchDataAndRenderPlots(manuallyRescheduled, seconds, render, callback)
       $scope.fetchDataAndRenderPlots(true, 10, false, function(err){
         if(err){
-          reject();
+          reject(err);
         }
         else{
           resolve();
