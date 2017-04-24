@@ -36,6 +36,7 @@ router.get("/all-eggs", (req, res, next) => {
 });
 
 router.get("/egg/:serialnumber", function(req, res, next){
+  let workingDir = __dirname + '/null';
   try{
     var serialNumber = req.params.serialnumber;
     var guid = req.query.guid;
@@ -51,7 +52,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
     // for good results the desired format of the response is {topic1: [], topic2: [], etc...}
     let moduleDir = __dirname;
     let upOneDir = moduleDir.split("/routes")[0];
-    let workingDir = `${upOneDir}/public/downloads/${guid}`;
+    workingDir = `${upOneDir}/public/downloads/${guid}`;
 
     console.log(`checking for existence of ${workingDir}`)
     if (guid && fs.existsSync(workingDir)) {
@@ -157,12 +158,19 @@ router.get("/egg/:serialnumber", function(req, res, next){
         if(fs.existsSync(workingDir)){
           rimraf(workingDir, () => {});
         }
-      }, 30 * 60 * 1000); // 30 minutes
+      }, 5 * 60 * 1000); // 5 minutes
     }
   }
   catch(err){
     console.log(err.message, err.stack);
-    res.status(500).json({error: error.message});
+    if(fs.existsSync(workingDir)){
+      rimraf(workingDir, () => {
+        res.status(500).json({error: err.message});
+      });
+    }
+    else{
+      res.status(500).json({error: err.message});
+    }
   }
 });
 
