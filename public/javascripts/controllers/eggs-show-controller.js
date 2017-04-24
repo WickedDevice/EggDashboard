@@ -163,7 +163,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     var theRender = render;
     var theCallback = callback;
 
-    if($scope.timeOfLastHttp && moment().diff($scope.timeOfLastHttp, "seconds") < 5){
+    if($scope.timeOfLastHttp && moment().diff($scope.timeOfLastHttp, "seconds") < 10){
       $scope.guid = null;
       theCallback(false);
       return; // cancel this one
@@ -551,7 +551,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       // $scope.fetchDataAndRenderPlots(manuallyRescheduled, seconds, render, callback)
       $scope.fetchDataAndRenderPlots(false, 10, false, function(err){
         if(err){
-          reject(err);
+          resolve(err);
         }
         else{
           resolve();
@@ -559,6 +559,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       });
     }).then(function() {
       // then, once that completes, request the default plot duration
+      $scope.timeOfLastHttp = null;
       return fetchBlockThenInterval($scope.routeDuration, 10);
     }).then(function(){
       $scope.initialized = true;
