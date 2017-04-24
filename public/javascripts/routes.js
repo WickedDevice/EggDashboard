@@ -6,7 +6,7 @@ angular.module('MyApp').config(function($routeProvider){
       controller: 'MapController'
     })
 
-    .when('/egg/:egg_id', {
+    .when('/egg/:egg_id/:duration', {
       templateUrl: 'templates/pages/eggs/index.html',
       controller: 'EggsShowController'
     });

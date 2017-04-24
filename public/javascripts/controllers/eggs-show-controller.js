@@ -555,5 +555,6 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     });
 
     $scope.eggSerial = $routeParams.egg_id;
+    $scope.routeDuration = $routeParams.duration || 60 * 5;
   }
 });
