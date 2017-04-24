@@ -58,9 +58,10 @@ router.get("/egg/:serialnumber", function(req, res, next){
       console.log(`${workingDir} exists`);
       // accumulate all the data that currently exists and give it back
       let status = require(`${workingDir}/status.json`);
+      console.log(`status = ${JSON.stringify(status, null, 2)}`);
       if(status.complete){
         let data = {};
-
+        console.log(`Beginning file sorting`);
         // sift through the data files and organize the results
         let files;
         if (fs.existsSync(`${workingDir}/${serialNumber}`)) {
@@ -83,6 +84,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
         }
         else{
           // there are files...
+          console.log(`Beginning file processing...`);
           promiseDoWhilst(() => {
             // do this...
             file = files.shift();
@@ -98,6 +100,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
             // and repeat while this returns true
             return files.length > 0;
           }).then(() => {
+            console.log(`file processing completed`);
             rimraf(workingDir, () => {
               console.log("Egg to Client: ", data);
               res.json(data);
