@@ -63,11 +63,11 @@ router.get("/egg/:serialnumber", function(req, res, next){
 
         // sift through the data files and organize the results
         let files;
-        if (fs.existsSync(`${dir}/${serialNumber}`)) {
-          files = fs.readdirSync(`${dir}/${serialNumber}`)
+        if (fs.existsSync(`${workingDir}/${serialNumber}`)) {
+          files = fs.readdirSync(`${workingDir}/${serialNumber}`)
             .sort((a,b) => {
-              return fs.statSync(`${dir}/${req.params.id}/${a}`).mtime.getTime() -
-                fs.statSync(`${dir}/${req.params.id}/${b}`).mtime.getTime();
+              return fs.statSync(`${workingDir}/${req.params.id}/${a}`).mtime.getTime() -
+                fs.statSync(`${workingDir}/${req.params.id}/${b}`).mtime.getTime();
             });
         }
 
