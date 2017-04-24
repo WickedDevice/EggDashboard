@@ -148,4 +148,20 @@ router.get("/egg/:serialnumber", function(req, res, next){
   }
 });
 
+function urlParams(params){
+  var ret = "";
+  if(Object.keys(params).length > 0){ // if there are any optional params
+    ret += '?';
+    var encodeParams = Object.keys(params).map(function(key){
+      if(key != "status") { // special case, not an OpenSensors parameter
+        return key + '=' + encodeURIComponent(params[key]);
+      }
+    });
+
+    ret += encodeParams.join('&');
+  }
+  return ret;
+}
+
+
 module.exports = router;
