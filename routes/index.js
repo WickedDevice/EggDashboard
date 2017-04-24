@@ -53,7 +53,9 @@ router.get("/egg/:serialnumber", function(req, res, next){
     let upOneDir = moduleDir.split("/routes")[0];
     let workingDir = `${upOneDir}/public/downloads/${guid}`;
 
+    console.log(`checking for existence of ${workingDir}`)
     if (guid && fs.existsSync(workingDir)) {
+      console.log(`${workingDir} exists`);
       // accumulate all the data that currently exists and give it back
       let status = require(`${workingDir}/status.json`);
       if(status.complete){
@@ -108,6 +110,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
       }
     }
     else{
+      console.log(`${workingDir} does not exists`);
       guid = uuid.v4();
       workingDir = `${upOneDir}/public/downloads/${guid}`;
       fs.mkdirSync(workingDir);
