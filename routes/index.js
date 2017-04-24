@@ -140,6 +140,13 @@ router.get("/egg/:serialnumber", function(req, res, next){
       .save();
 
       res.json({guid});
+
+      // set a timeout and cleanup regardless after a minute
+      setTimeout(() => {
+        fs.existsSync(workingDir){
+          rimraf(workingDir);
+        }
+      }, 60 * 1000)
     }
   }
   catch(err){
