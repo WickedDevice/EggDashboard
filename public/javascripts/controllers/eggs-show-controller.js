@@ -167,6 +167,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       }
       else if(data.guid){
         $scope.guid = data.guid;
+        if(/guid=([a-z0-9\-]+)/.test(theUrl)){
+          theUrl = theUrl.replace(/(guid=)([a-z0-9\-]+)(.*)/, "$1"+$scope.guid+"$3");
+        }
+        else {
+          theUrl += "&guid=" + $scope.guid;
+        }
         $timeout(fetchData.bind($scope, theUrl, theSeconds, theRender, theCallback), 5000);
         return;
       }
