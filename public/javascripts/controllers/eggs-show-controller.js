@@ -36,7 +36,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     {name:"24 hours", value: 86400}
   ];
 
-  $scope.selectedDuration = {name: "5 minutes", value: 300};
+  $scope.selectedDuration = {value: $scope.routeDuration};
+  $scope.selectedDuration.name = $scope.durations.find(o => o.value == $scope.routeDuration).name;
 
   $scope.durationChange = function(){
     console.log("selection changed to " + $scope.selectedDuration.name);
