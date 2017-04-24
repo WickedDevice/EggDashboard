@@ -1,5 +1,6 @@
 angular.module('MyApp').controller('EggsShowController', function($scope, $routeParams, $http, $interval, $timeout, $sce) {
 
+  $scope.guid = null;
   $scope.mostRecentTemperature = null;
   $scope.mostRecentTemperatureTime = null;
   $scope.mostRecentHumidity = null;
@@ -136,7 +137,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       if(manuallyRescheduled) {
         // retry in 10 seconds
         console.log("Rescheduling fetch");
-        $timeout($scope.fetchDataAndRenderPlots.bind(null, true, seconds, render, callback), 10000);
+        $timeout($scope.fetchDataAndRenderPlots.bind($scope, true, seconds, render, callback), 10000);
       }
       return;
     }
@@ -144,7 +145,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     $scope.loading = true;
     $scope.downloadInProgress = true;
 
-    fetchData('egg/' + $routeParams.egg_id + '?seconds=' + seconds, seconds, render, callback);
+    if($scope.guid){
+      fetchData('egg/' + $routeParams.egg_id + '?seconds=' + seconds + '&guid=' + $scope.guid, seconds, render, callback);
+    }
+    else{
+      fetchData('egg/' + $routeParams.egg_id + '?seconds=' + seconds, seconds, render, callback);
+    }
   };
 
   function fetchData(url, seconds, render, callback){
@@ -156,12 +162,19 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       data = data.data;
 
       if(typeof data !== 'object'){
-        $timeout(fetchData.bind(null, theUrl, theSeconds, theRender, theCallback), 5000);
+        $timeout(fetchData.bind($scope, theUrl, theSeconds, theRender, theCallback), 5000);
+        return;
+      }
+      else if(data.guid){
+        $scope.guid = data.guid;
+        $timeout(fetchData.bind($scope, theUrl, theSeconds, theRender, theCallback), 5000);
         return;
       }
 
+      // we have data, invalidate our guid
+      $scope.guid = null;
       processData(data, seconds, render);
-        theCallback(false);
+      theCallback(false);
     }, // end success
     function(response){
       console.log("Download Failed");
@@ -170,6 +183,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       console.log(response.statusText);
       console.log(response.headers());
       $scope.downloadInProgress = false;
+      $scope.guid = null;
       theCallback(true);
     }); // end error
   }
