@@ -123,7 +123,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
 
       // create kue job...
       var apiParams = {};
-      apiParams["start-date"] = moment().subtract(30, 'seconds').format();
+      apiParams["start-date"] = moment().subtract(Math.max(30, duration_seconds), 'seconds').format();
       apiParams["end-date"] = moment().format();
       var urlparams = urlParams(apiParams);
 
