@@ -26,6 +26,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.loading = false;
   $scope.eggSerial = $routeParams.egg_id;
   $scope.routeDuration = $routeParams.duration || 60 * 5;
+  $scope.timeOfLastHttp = null;
 
   $scope.durations = [
     {name: "5 minutes", value: 300},
@@ -161,6 +162,12 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     var theSeconds = seconds;
     var theRender = render;
     var theCallback = callback;
+
+    if($scope.timeOfLastHttp && moment().diff($scope.timeOfLastHttp, "seconds") < 5){
+      return; // cancel this one
+    }
+
+    $scope.timeOfLastHttp = moment();
     $http({method: 'GET', url: theUrl, timeout: 100000000}).then(function(data){
       data = data.data;
 
@@ -540,7 +547,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     // to bootstrap the application, first request the last 10 seconds of data in order to populate the text data
     return new Promise(function(resolve, reject){
       // $scope.fetchDataAndRenderPlots(manuallyRescheduled, seconds, render, callback)
-      $scope.fetchDataAndRenderPlots(true, 10, false, function(err){
+      $scope.fetchDataAndRenderPlots(false, 10, false, function(err){
         if(err){
           reject(err);
         }
