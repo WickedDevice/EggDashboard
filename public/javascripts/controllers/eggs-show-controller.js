@@ -164,6 +164,8 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     var theCallback = callback;
 
     if($scope.timeOfLastHttp && moment().diff($scope.timeOfLastHttp, "seconds") < 5){
+      $scope.guid = null;
+      theCallback(false);
       return; // cancel this one
     }
 
