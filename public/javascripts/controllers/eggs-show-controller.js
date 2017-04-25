@@ -40,17 +40,17 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
   $scope.selectedDuration = {value: $scope.routeDuration};
   $scope.selectedDuration.name = $scope.durations.find(o => o.value == $scope.routeDuration).name;
 
-  $scope.durationChange = function(){
-    console.log("selection changed to " + $scope.selectedDuration.name);
-    $scope.downloadInProgress = false;
-    if(angular.isDefined($scope.stopFetching)){
-      $interval.cancel($scope.stopFetching);
-    }
-
-    if($scope.selectedDuration.value != 0) {
-      return fetchBlockThenInterval($scope.selectedDuration.value, 10);
-    }
-  };
+  // $scope.durationChange = function(){
+  //   console.log("selection changed to " + $scope.selectedDuration.name);
+  //   $scope.downloadInProgress = false;
+  //   if(angular.isDefined($scope.stopFetching)){
+  //     $interval.cancel($scope.stopFetching);
+  //   }
+  //
+  //   if($scope.selectedDuration.value != 0) {
+  //     return fetchBlockThenInterval($scope.selectedDuration.value, 10);
+  //   }
+  // };
 
   $scope.registeredSensorTypePlotCallbacks = [];
 
@@ -141,7 +141,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
       if(manuallyRescheduled) {
         // retry in 10 seconds
         console.log("Rescheduling fetch");
-        $timeout($scope.fetchDataAndRenderPlots.bind($scope, true, seconds, render, callback), 10000);
+        $timeout($scope.fetchDataAndRenderPlots.bind($scope, true, seconds, render, callback), 30000);
       }
       return;
     }
@@ -533,13 +533,13 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
         }
       });
     }).then(function(){
-      // then, once that completes, kick off a timer to add 10 seconds of data to the plots
+      // then, once that completes, kick off a timer to add 30 seconds of data to the plots
       $scope.stopFetching = $interval(function(){
         $scope.fetchDataAndRenderPlots(false, intervalSeconds, true, function(err){
           $scope.loading = false;
           console.log("Interval completed");
         });
-      }, 10000);
+      }, 30000);
     }).then(function(){
         $('body').removeClass("loading");
         $scope.loading = false;
@@ -550,7 +550,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     // to bootstrap the application, first request the last 10 seconds of data in order to populate the text data
     return new Promise(function(resolve, reject){
       // $scope.fetchDataAndRenderPlots(manuallyRescheduled, seconds, render, callback)
-      $scope.fetchDataAndRenderPlots(false, 10, false, function(err){
+      $scope.fetchDataAndRenderPlots(false, 30, false, function(err){
         if(err){
           resolve(err);
         }
@@ -561,7 +561,7 @@ angular.module('MyApp').controller('EggsShowController', function($scope, $route
     }).then(function() {
       // then, once that completes, request the default plot duration
       $scope.timeOfLastHttp = null;
-      return fetchBlockThenInterval($scope.routeDuration, 10);
+      return fetchBlockThenInterval($scope.routeDuration, 30);
     }).then(function(){
       $scope.initialized = true;
     }).catch(function(err){
