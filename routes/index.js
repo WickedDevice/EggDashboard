@@ -135,7 +135,7 @@ router.get("/egg/:serialnumber", function(req, res, next){
       let url = 'https://api.opensensors.io/v1/messages/device/${serial-number}' + urlparams;
 
       let job = queue.create('download', {
-          title: 'Dashboard request for last data from ' + url.replace('${serial-number}', serials[0])
+          title: 'Dashboard request for last data from ' + decodeURIComponent(url.replace('${serial-number}', serials[0]))
         , original_serials: serials.slice()
         , serials: serials.slice()
         , url: url
